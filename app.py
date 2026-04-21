@@ -2,58 +2,89 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-devices = []
+items = []
 current_id = 1
 
-@app.route('/devices', methods=['GET'])
-def get_devices():
-    return jsonify(devices)
+# -------------------------
+# CORS (IMPORTANTE)
+# -------------------------
+@app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    return response
 
-@app.route('/devices/<int:id>', methods=['GET'])
-def get_device(id):
-    for d in devices:
-        if d['id'] == id:
-            return jsonify(d)
-    return jsonify({"error": "No encontrado"}), 404
-
-@app.route('/devices', methods=['POST'])
-def create_device():
-    global current_id
-    data = request.json
+# -------------------------
+# LOGIN
+# -------------------------
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
 
     if not data:
-        return jsonify({"error": "Datos vacíos"}), 400
+        return jsonify({"error": "Sin datos"}), 400
 
-    device = {
+    if data.get("username") == "admin" and data.get("password") == "1234":
+        return jsonify({"ok": True})
+
+    return jsonify({"error": "Credenciales incorrectas"}), 401
+
+# -------------------------
+# GET ITEMS
+# -------------------------
+@app.route('/items', methods=['GET'])
+def get_items():
+    return jsonify(items)
+
+# -------------------------
+# AGREGAR ITEM
+# -------------------------
+@app.route('/items', methods=['POST'])
+def add_item():
+    global current_id
+    data = request.get_json()
+
+    nuevo = {
         "id": current_id,
-        "nombre": data.get("nombre", ""),
-        "tipo": data.get("tipo", ""),
-        "estado": data.get("estado", ""),
-        "area": data.get("area", ""),
-        "fecha_registro": data.get("fecha_registro", "")
+        "nombre": data.get("nombre"),
+        "numeroSerie": data.get("numeroSerie"),
+        "descripcion": data.get("descripcion")
     }
 
-    devices.append(device)
+    items.append(nuevo)
     current_id += 1
 
-    return jsonify(device), 201
+    return jsonify({"mensaje": "Agregado"})
 
-@app.route('/devices/<int:id>', methods=['PUT'])
-def update_device(id):
-    data = request.json
-    for d in devices:
-        if d['id'] == id:
-            d.update(data)
-            return jsonify(d)
+# -------------------------
+# ACTUALIZAR
+# -------------------------
+@app.route('/items/<int:id>', methods=['PUT'])
+def update_item(id):
+    data = request.get_json()
+
+    for i in items:
+        if i["id"] == id:
+            i["nombre"] = data.get("nombre")
+            i["numeroSerie"] = data.get("numeroSerie")
+            i["descripcion"] = data.get("descripcion")
+            return jsonify({"mensaje": "Actualizado"})
+
     return jsonify({"error": "No encontrado"}), 404
 
-@app.route('/devices/<int:id>', methods=['DELETE'])
-def delete_device(id):
-    for d in devices:
-        if d['id'] == id:
-            devices.remove(d)
+# -------------------------
+# ELIMINAR
+# -------------------------
+@app.route('/items/<int:id>', methods=['DELETE'])
+def delete_item(id):
+    for i in items:
+        if i["id"] == id:
+            items.remove(i)
             return jsonify({"mensaje": "Eliminado"})
+
     return jsonify({"error": "No encontrado"}), 404
+
 
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
